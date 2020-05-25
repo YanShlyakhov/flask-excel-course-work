@@ -1,0 +1,150 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<script>
+
+var countOfCharts = {{count_of_headers}} - 1;
+
+var jsonData = JSON.parse({{ json_data|tojson }});
+var headers = {{ headers|tojson }};
+
+function render_chart(index, title, header, step){
+	var limit = 20;
+	var y = 100;    
+	var data = [];
+	var dataSeries = { type: "line" };
+	var dataPoints = [];
+	for (var i = 0; i < jsonData[header].length; i += step) {
+		y = jsonData[header][i];
+		dataPoints.push({
+			x: i,
+			y: y
+		});
+	}
+	dataSeries.dataPoints = dataPoints;
+	data.push(dataSeries);
+
+	//Better to construct options first and then pass it as a parameter
+	var options = {
+		zoomEnabled: true,
+		animationEnabled: true,
+		title: {
+			text: title
+		},
+		axisY: {
+			includeZero: false,
+			lineThickness: 1
+		},
+		data: data  // random data
+	};
+
+	var chart = new CanvasJS.Chart("chartContainer"+index, options);
+	var startTime = new Date();
+	chart.render();
+	var endTime = new Date();
+	document.getElementById("timeToRender"+index).innerHTML = "Time to Render: " + (endTime - startTime) + "ms";
+}
+
+function Delete(index){
+	document.getElementById('chart'+index).style.display = 'none';
+}
+
+function checkBox(index){
+	var checkBox = document.getElementById("myCheck"+index);
+
+	if(checkBox.checked == true && countOfCharts >= 2){
+		checkBox.checked = false;
+		alert("I can't show more than 2 tables!");
+		return;
+	}
+	// If the checkbox is checked, display the output text
+	if (checkBox.checked == true){
+		document.getElementById('chart'+index).style.display = "block";
+		countOfCharts++;
+	} else {
+		Delete(index);
+		countOfCharts--;
+	}
+}
+
+function stepUpdate(step){
+	render_charts(step);
+}
+
+function render_charts(step){
+	for (var i = 1; i < {{count_of_headers}}; i++){
+		render_chart(i, headers[i], headers[i], step); 
+	}
+}
+
+window.onload = function () {
+	render_charts(1);
+	for (var i = 1; i < {{count_of_headers}}; i++){
+		checkBox(i);
+	}
+}
+
+</script>
+<style>
+	#timeToRender {
+		position:absolute; 
+		top: 10px; 
+		font-size: 20px; 
+		font-weight: bold; 
+		background-color: #d85757;
+		padding: 0px 4px;
+		color: #ffffff;
+	}
+</style>
+</head>
+	<body>
+		<table width=90%>
+			<tr>
+				<td>
+					<form action = "/upload" method = "POST" 
+						enctype = "multipart/form-data">
+						<input type = "file" name = "file" />
+						<input type = "submit"/>
+					</form> 
+				</td>
+
+				<td>
+					Charts
+				</td>
+
+			</tr>
+			<tr>
+				<td width=30%>
+					<ul class="myclass">
+						{% for i in range(1, count_of_headers)%}
+							<li>{{headers[i]}}: <input type="checkbox" id="myCheck{{i}}" onclick="checkBox({{i}})"></li>
+						{% endfor %}
+					</ul>
+					<ul>
+						<li>
+							<input type="radio" id="contactChoice1" name="contact" value="1" checked onclick="stepUpdate(1)">
+							<label for="contactChoice1">day</label>
+						</li>
+						<li>
+							<input type="radio" id="contactChoice2"	name="contact" value="2" onclick="stepUpdate(2)">
+							<label for="contactChoice2">week</label>
+						</li>
+						<li>
+							<input type="radio" id="contactChoice3"	name="contact" value="3" onclick="stepUpdate(3)">
+							<label for="contactChoice3">month</label>
+						</li>
+					</ul>
+				</td>
+				<td width=70%>
+					{% for i in range(1, count_of_headers)%}
+						<div id="chart{{i}}">
+							<div id="chartContainer{{i}}" style="height: 370px; width: 100%;"></div>
+							<span id="timeToRender{{i}}"></span>
+						</div>
+					{% endfor %}
+				</td>
+			</tr>
+		</table>
+		<script src="https://canvasjs.com/assets/script/canvasjs.min.js"></script>
+	</body>
+</html>
